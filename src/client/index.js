@@ -1,8 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import App from './containers/App'
 
-
-let name = 'some';
-const template = <h1> hello from react2{name} </h1>;
-
-ReactDOM.render(template, document.getElementById('app'));
+ReactDOM.render(
+    <React.StrictMode>
+        <App />
+    </React.StrictMode>, 
+    document.getElementById('app')
+);
