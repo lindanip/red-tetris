@@ -6,7 +6,7 @@
   "scripts": {
     "client-dev": "webpack-dev-server --mode development --hot --colors --inline",
     "client-build": "webpack --mode production --progress --colors",
-    "server-dev": "node src/server/index.js",
+    "server-dev": "nodemon src/server/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
