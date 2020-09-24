@@ -32,39 +32,39 @@ function initApp(app, params, callback)
     });
 }
 
-function initEngine(io)
-{
-    io.on('connection', (socket) => {
-        // logInfo(`Socket connected: ${socket.id}`);
+// function initEngine(io)
+// {
+//     io.on('connection', (socket) => {
+//         // logInfo(`Socket connected: ${socket.id}`);
         
-        socket.on('action', action => {
-            if (action.type === 'server/ping')
-                socket.emit('action', { type: 'pong'});
-        });
-    });
-}
+//         socket.on('action', action => {
+//             if (action.type === 'server/ping')
+//                 socket.emit('action', { type: 'pong'});
+//         });
+//     });
+// }
 
 
 const create = (params) => {
     const promise = new Promise((resolve, reject) => {
         try{
-            const app = require('http').createServer();
+            // const app = require('http').createServer();
             
-            initApp(app, params, () => {
-                const io = require('socket.io')(app);
+            // initApp(app, params, () => {
+            //     const io = require('socket.io')(app);
                 
-                console.log(io);
-                const stop = (callback) => {
-                    io.close();
-                    app.close(() => app.unref());
+            //     console.log(io);
+            //     const stop = (callback) => {
+            //         io.close();
+            //         app.close(() => app.unref());
 
-                    // logInfo(`Engine stopped.`);
-                    callback();
-                }
+            //         // logInfo(`Engine stopped.`);
+            //         callback();
+            //     }
 
-                initEngine(io);
-                resolve({stop});
-            });
+            //     initEngine(io);
+            //     resolve({stop});
+            // });
         }catch (err){
             console.log(err);
             reject(err);
