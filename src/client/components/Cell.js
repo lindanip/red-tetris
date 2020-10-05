@@ -4,9 +4,11 @@ import { TETROMINOS } from '../tetrominos';
 
 function Cell({ type })
 {
-    return ( 
+    return (
+        // <StyledCell type={ type } color={ newPiece.TETROMINOS[type].color } />
         <StyledCell type={type} color={TETROMINOS[type].color} />
       );
 }
 
+// export default React.memo(cell);
 export default Cell;

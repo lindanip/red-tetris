@@ -6,7 +6,7 @@
   "scripts": {
     "client-dev": "webpack-dev-server --mode development --hot --colors --inline",
     "client-build": "webpack --mode production --progress --colors",
-    "server-dev": "nodemon src/server/main.js",
+    "server-dev": "nodemon src/server/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,6 +20,9 @@
   },
   "homepage": "https://github.com/lindanip/red-tetris#readme",
   "dependencies": {
+    "@babel/plugin-transform-runtime": "^7.11.5",
+    "@babel/runtime": "^7.11.2",
+    "express": "^4.17.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "socket.io": "^2.3.0",

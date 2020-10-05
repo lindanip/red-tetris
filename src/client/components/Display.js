@@ -3,7 +3,7 @@ import { StyledDisplay } from './styles/StyledDisplay';
 
 function Display({ gameOver, text }){
     return (
-        <StyledDisplay gameOver={gameOver}>{ text }</StyledDisplay>
+        <StyledDisplay gameOver={ gameOver }>{ text }</StyledDisplay>
     );
 }
 

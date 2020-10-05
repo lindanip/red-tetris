@@ -1,76 +1,52 @@
-const fs = require('fs');
-// import debug from 'debug';
+const express = require("express");
+const initEngine = require("./sockets");
+const io = require("socket.io")();
+const params = require('../../params');
+const app = express();
 
-// const logError = debug('tetris:error');
-// const logInfo = debug('tetris:info');
+app.use(express.json({ limit: "50mb" }));
+app.use(
+  express.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 })
+);
 
-function initApp(app, params, callback)
+function initApp(params, callback)
 {
-    const { host, port } = params;
+    const { port } = params;
 
-    const handler = (req, res) => {
-        console.log('requests');
-        const file = (( req.url === '/bundle.js') ? '/../../build/bundle.js' : '/../../index.html');
-
-        fs.readFile(__dirname + file, (err, data) => {
-            if (err){
-                // logError(err);
-                res.writeHead(500);
-                return res.end('ERROR loading index.html');
-            }
-            res.writeHead(200);
-            res.end(data);
-        });
-    }
-
-    app.on('request', handler);
-
-    app.listen({ host, port }, () => {
-        // logInfo(`tetris listening on port ${params.url}`);
+    app.listen( port, () => {
         console.log(`tetris listening on port ${params.url}`);
         callback();
     });
 }
 
-// function initEngine(io)
-// {
-//     io.on('connection', (socket) => {
-//         // logInfo(`Socket connected: ${socket.id}`);
-        
-//         socket.on('action', action => {
-//             if (action.type === 'server/ping')
-//                 socket.emit('action', { type: 'pong'});
-//         });
-//     });
-// }
-
-
-const create = (params) => {
+function create(params)
+{
     const promise = new Promise((resolve, reject) => {
         try{
-            // const app = require('http').createServer();
-            
-            // initApp(app, params, () => {
-            //     const io = require('socket.io')(app);
-                
-            //     console.log(io);
-            //     const stop = (callback) => {
-            //         io.close();
-            //         app.close(() => app.unref());
+            initApp(params, () => {
+                const stop = (callback) => {
+                    io.close();
+                    // app.close(() => app.unref());
+                    callback();
+                }
 
-            //         // logInfo(`Engine stopped.`);
-            //         callback();
-            //     }
+                io.attach(2000, {
+                    pingInterval: 10000,
+                    pingTimeout: 5000,
+                    cookie: false,
+                });
 
-            //     initEngine(io);
-            //     resolve({stop});
-            // });
+                initEngine(io);
+                resolve({ stop });
+            });
         }catch (err){
-            console.log(err);
             reject(err);
         }
     });
-
     return promise;
 }
-module.exports = create;
+create(params.server)
+.then(({ stop }) => {
+    console.log('start');
+})
+.catch((err) => console.log(err));

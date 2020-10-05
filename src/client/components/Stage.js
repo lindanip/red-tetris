@@ -8,9 +8,39 @@ function Stage({ stage }){
     console.log(`len: ${stage[0].length} hi: ${stage.length}`);
     return (
         <StyledStage width={stage[0].length} height={stage.length}>
-            {stage.map(row => row.map((cell, x) => <Cell key={x} type={cell[0]}/>))}
+            {stage.map(row => 
+                row.map((cell, x) =>
+                    <Cell key={x} type={cell[0]}/>
+                )
+            )}
         </StyledStage >
     );
 }
 
 export default Stage;
+
+
+
+// function StageTwo({ stage, type = 0 }){
+//     if (type == 0)
+//         return (
+//             <StyledStage width={ stage[0].length } height={stage.length}>
+//                 {   
+//                     stage.map((row) =>
+//                         row.map((cell, x) => <Cell key={x} type={cell[0]} />)
+//                     )
+//                 }
+//             </StyledStage>
+//         );
+//     else
+//         // must be styled to be small 
+//         return (
+//             <StyledStageE width={ stage[0].length } height={stage.length}>
+//                 {   
+//                     stage.map((row) =>
+//                         row.map((cell, x) => <Cell key={x} type={cell[0]} />)
+//                     )
+//                 }
+//             </StyledStageE>
+//         );        
+// }
