@@ -5,7 +5,6 @@ import Cell from './Cell';
 
 
 function Stage({ stage }){
-    console.log(`len: ${stage[0].length} hi: ${stage.length}`);
     return (
         <StyledStage width={stage[0].length} height={stage.length}>
             {stage.map(row => 

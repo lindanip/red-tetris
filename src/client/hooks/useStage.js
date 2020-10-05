@@ -6,17 +6,6 @@ export function useStage(player, resetPlayer)
     const [ stage, setStage ] = useState(createStage());
     const [rowCleared, setRowsCleared ] = useState(0);
 
-
-    // const addRow = (stage, setStage) => {
-    //     for (let i = 1; i < stage.length; i++)
-    //         stage[i - 1] = [...stage[i]];
-
-    //     stage[stage.length - 1] = new Array(stage[0].length).fill(["B", "test"]);
-    //     setStage(stage);
-    // };
-
-
-
     useEffect(() => {
 
         // will work once at a time
@@ -36,8 +25,8 @@ export function useStage(player, resetPlayer)
         const updateStage = prevStage => {
             // flush
             const newStage = prevStage.map(row => 
-                (row.map(cell => cell[1] === 'clear' ? [0, 'clear'] : cell)
-            ));
+                row.map(cell => ( cell[1] === 'clear' ? [0, 'clear'] : cell ))
+            );
 
             // draw
             player.tetromino.forEach((row, y) => {
@@ -51,19 +40,30 @@ export function useStage(player, resetPlayer)
                 });
             });
 
-            if (player.collided){
+            if (player.collided) {
                 resetPlayer();
-                //return sweepRows(newStage);
-                // do some socket stuff also
-            }
-            
+                //return sweepRows(newStage); // do some socket stuff also
+            }   
             return newStage;
         }
-
         setStage(prev => updateStage(prev)); // param + player + resetPlayer + shapeTrack + socket
 
-        // new dep 
-    },[player]); // add resetplayer + socket + rowsCleared + shapeTrack + shapes
-    // },[player.collided, player.pos.x, player.pos.y, player.tetromino]);
+    },[player.collided, player.pos.x, player.pos.y, player.tetromino, resetPlayer]); // add resetplayer + socket + rowsCleared + shapeTrack + shapes
     return [stage, setStage, rowCleared]; // add addRow function
 }
+
+
+
+
+
+
+
+
+
+// const addRow = (stage, setStage) => {
+    //     for (let i = 1; i < stage.length; i++)
+    //         stage[i - 1] = [...stage[i]];
+
+    //     stage[stage.length - 1] = new Array(stage[0].length).fill(["B", "test"]);
+    //     setStage(stage);
+    // };
