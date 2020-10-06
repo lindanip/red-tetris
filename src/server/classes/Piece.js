@@ -67,7 +67,7 @@ class Piece {
         const tetrominos = 'IJLOSTZ';
         const randTetrominos = tetrominos[Math.floor(Math.random() * tetrominos.length)];
     
-        return TETROMINOS[randTetrominos];
+        return this.TETROMINOS[randTetrominos];
     }
 }
 

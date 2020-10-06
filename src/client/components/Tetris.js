@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-//import io from 'socket.io-client';
+import io, { connect } from 'socket.io-client';
 
 import Stage from './Stage';
 import Display from './Display';
@@ -12,54 +12,119 @@ import { useInterval } from '../hooks/useInterval';
 import { StyledTetrisWrapper , StyledTetris } from './styles/StyledTetris';
 import { createStage, checkCollision } from '../gameHelpers';
 
-// let connection = null;
-// let newGame = {
-//     users: [],
-//     left: [],
-//     room: null,
-// }
+let connection = null;
+let newGame = {
+    users: [],
+    left: [],
+    room: null,
+}
 
-// function createConnection(){
-//     return new Promise((resolve, reject) => {
-//         if (!connection)
-//         {
-//             try{
-//                 let connection = io.connect('http://localhost:2000');
-//                 connection.emit('joinRoomReq', window.location.hash);
-//                 resolve(connection);
-//             }catch(e){
-//                 reject(e);
-//             }
-//         }
-//     })
-// }
-// function socketOn(socket,event, cb) {
-//     console.log(socket)
-//     socket.on(event, cb)
-// }
-
-// function socketEmit(socket,event, params = []) {
-//     socket.emit(event, params)
-// }
+function createConnection(){
+    return new Promise((resolve, reject) => {
+        if (!connection){
+            try{
+                let connection = io.connect('http://localhost:2000');
+                connection.emit('joinRoomReq', window.location.hash);
+                resolve(connection);
+            }catch(e){
+                reject(e);
+            }
+        }
+    });
+}
 
 export default function Tetris()
 {
     console.log('re-render');
-
+    // state and hooks
     const [ gameOver, setGameOver ] = useState(false);
     const [ dropTime, setDropTime ] = useState(null);
-    
-    // const [ user, setUser ] = useState(null);
-    // const [ winner, setWinner ] = useState(null);
-    // const [ start, setStart ] = useState(false);
-    // const [ shapes, setShapes ] = useState(null);
+    const [ user, setUser ] = useState(null);
+    const [ winner, setWinner ] = useState(null);
+    const [ start, setStart ] = useState(false);
+    const [ shapes, setShapes ] = useState(null);
+    const [ gameLeader, setGameLeader ] = useState(false);
+    const [ shapeCounter, setShapeCounter ] = useState(0);
 
-    // const [ host, setHost ] = useState(false);
-    // const [ shapeTrack, setShapeTrack ] = useState(0);
+    const [ player, updatePlayerPos, resetPlayer, playerRotate ]
+        = usePlayer(shapeCounter);
 
-    const [ player, updatePlayerPos, resetPlayer, playerRotate ] = usePlayer();
-    // send in the setshapeTrack as param and add rowsCleared
-    const [ stage, setStage ] = useStage(player, resetPlayer);
+    const [ stage, setStage, rowsCleared, addRow ]
+        = useStage(player, resetPlayer, connection, shapes, shapeCounter);
+        // only setPlayer is not sent
+
+    // component functions
+    const startGame = useCallback(() => {
+        
+        console.log('start game');
+        setStage(createStage());
+        setGameOver(false);
+        setDropTime(1000);
+        setStart(true); // set game started
+        resetPlayer(shapes, shapeCounter); // set shape
+        newGame.left = [ ...newGame.users ]; // ????
+        setWinner(null);
+        // setScore setRows setLevel
+        // used a useCallback hook
+
+    }, [resetPlayer, setStage, shapes] );
+
+    const connect = useCallback(async () => {
+        if (!connection){
+            
+            connection = await createConnection();
+            
+            connection.on('joinRoomRes', room => {
+                newGame.room = room;
+                console.log('joinRoomRes: ' + room);
+            });
+
+            connection.on('updateJoinedUsers', usersRes => {
+                console.log('updated joined users');
+                console.log(usersRes);
+                console.log(newGame);
+                newGame.users = usersRes;
+                if (newGame.users[0] && newGame.users[0].id == connection.id)
+                    setGameLeader(true);
+                setUser(newGame.users.find((user) => user.id === connection.id));
+            });
+
+            connection.on('startGameRes', (room) => {
+                console.log('startGameRes');
+                connection.emit('updatePlayerReq', stage); // ????
+
+                if (newGame.users[0] && newGame.users[0].id == connection.id)
+                    connection.emit('getShapesReq', (room));
+            });
+
+            connection.on('getShapesRes', shapesRes => {
+                console.log('getShapesRes');
+                setShapes(shapesRes);
+            });
+
+            connection.on('deadUser', userId => {
+                console.log('user dead');
+                newGame.left.splice(
+                    newGame.left.findIndex((e) => e.id === userId),
+                    1
+                );
+
+                if (newGame.left.length === 1) { // if the user is only playing
+                    setGameOver(true);
+                    setDropTime(null);
+                    connection.emit('winner', newGame.left[0]);
+                }
+            });
+
+            connection.on('setWinner', (username) => {
+                console.log('set winner');
+                setStart(false);
+                setWinner(username);
+                connection.emit('updatePlayer', stage);
+            });
+        }
+    }, []); // removed the stage as a depency
+
 
     function movePlayer(dir){
         console.log(dir);
@@ -86,8 +151,10 @@ export default function Tetris()
         else{
             if (player.pos.y < 1){
                 console.log('game over!');
+                connection.emit('deadUser', connection.id);
                 setGameOver(true);
                 setDropTime(null);
+                setStart(false);
             }
             updatePlayerPos({x: 0, y: 0, collided: true});
         }
@@ -103,21 +170,35 @@ export default function Tetris()
 
     function dropPlayer(){
         setDropTime(null);
-        drop(updatePlayerPos);
+        drop();
     }
 
-    function startGame(){
-        setStage(createStage());
-        resetPlayer();
-        setGameOver(false);
-        setDropTime(1000);
-        console.log('start game');
+    function callStartGame(){
+        connection.emit('startGameReq', newGame.room);
+        setStart(true);
     }
+
+    
 
     useInterval(() => {
-        // setDropTime(null);
         drop();
     }, dropTime);
+
+    useEffect(() => {
+        
+        if (shapes)
+            startGame()
+    }, [shapes, startGame]);
+
+    useEffect(() => {
+        
+        if (gameOver)
+            setShapeCounter(0)
+    }, [gameOver, shapeCounter, setShapeCounter]);
+
+    useEffect(() => {
+        connect()
+    }, []);
 
     return (
         <StyledTetrisWrapper
@@ -138,88 +219,9 @@ export default function Tetris()
                         </div>)
                     }
                     <StartButton 
-                    callback={ startGame }/>
+                    callback={ callStartGame }/>
                 </aside> 
             </StyledTetris>
         </StyledTetrisWrapper>
     );
 }
-
-
-
-
-
-
-    // const { score, setScore, rows, setRows, level, setLevel } = useGameStatus(
-	// 	rowsCleared
-	// );
-
-    // const startGame = useCallback(() => {
-    //     setStart(true);
-    //     setStage(createStage());
-    //     setDropTime(1000);
-    //     // resetPlayer(); param shapes, shapeTrack, setPlayer
-    //     setGameOver(false); // repeat ??
-    //     setWinner(null);
-    //     newGame.left = [...newGame.users];
-    //     // setScore(0) setRows(0) setLevel(1)
-    // // }, [resetPlayer, setStage, shapes]); // + setScore + setRows + setLevel
-
-    // const connect = useCallback(async () => {
-    //     if (!connection){
-    //         connection = await createConnection();
-            
-    //         // socketOn(connection, 'updatePlayers', (p) => {
-    //         //     console.log(p);
-    //         // });
-
-    //         socketOn(connection, 'startGameRes', (param) => {
-
-    //         });
-
-    //         socketOn(connection, 'shapesRes', (shapes) => {
-
-    //         });
-
-    //         // socketOn(connection, 'endGameReq', (p) => {
-
-    //         // });
-
-    //         // socketOn(connection, 'rowPenalty', (p) => {
-
-    //         // });
-
-    //         // socketOn(connection, 'setWinner', (username) => {
-
-    //         // });
-
-    //         // socketOn(connection, 'deadUser', (param) => {
-
-    //         // });
-    //     }
-    // }, [connection]); // dep props.room + stage    
-
-    // connect();
-    // useEffect(() => {
-    //     if (shapes)
-    //         startGame(); //param list
-    // }, [shapes, startGame]);
-
-    // useEffect(() => {
-    //     if (gameOver)
-    //         setShapeTrack(0);
-    // }, [gameOver, shapeTrack, setShapeTrack]);
-
-    // // const useMountEffect = () => { // param fun + socket + newGame + setHost + setUser + setShapes + ++
-    // //     useEffect(() => {
-    // //         fun(params)
-    // //     }, [])
-    // // }
-
-    // const callStartGame = () => { //param list
-    //     socket.emit('start'); //param newGame.room
-    //     setStart(true);
-    // }
-
-    // const keyUp();
-    // const move();

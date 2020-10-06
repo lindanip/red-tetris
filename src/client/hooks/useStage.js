@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { createStage } from '../gameHelpers';
 
-export function useStage(player, resetPlayer)
+export function useStage(player, resetPlayer, connection)
 {
     const [ stage, setStage ] = useState(createStage());
     const [rowCleared, setRowsCleared ] = useState(0);
 
     useEffect(() => {
 
-        // will work once at a time
-        // param for socket 
+        setRowsCleared(0);
+
         const sweepRows = (newStage) => {
             newStage.reduce((ack, row) => {
                 if (row.findIndex(cell => cell[0] === 0) === -1) {
@@ -42,13 +42,19 @@ export function useStage(player, resetPlayer)
 
             if (player.collided) {
                 resetPlayer();
-                //return sweepRows(newStage); // do some socket stuff also
+                connection.emit('endGameReq', 'x');
+                let temp = sweepRows(newStage);
+                console.log(temp);
+                console.log('-------');
+               
+                return newStage;
             }   
             return newStage;
         }
-        setStage(prev => updateStage(prev)); // param + player + resetPlayer + shapeTrack + socket
+        setStage(prev => updateStage(prev));
 
-    },[player.collided, player.pos.x, player.pos.y, player.tetromino, resetPlayer]); // add resetplayer + socket + rowsCleared + shapeTrack + shapes
+    },[player.collided, player.pos.x, player.pos.y, player.tetromino, resetPlayer, connection]); // add resetplayer + socket + rowsCleared + shapeTrack + shapes
+    
     return [stage, setStage, rowCleared]; // add addRow function
 }
 
