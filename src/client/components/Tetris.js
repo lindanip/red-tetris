@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import io, { connect } from 'socket.io-client';
+import io from 'socket.io-client';
 
 import Stage from './Stage';
 import Display from './Display';
@@ -50,7 +50,7 @@ export default function Tetris()
         = usePlayer(shapeCounter);
 
     const [ stage, setStage, rowsCleared, addRow ]
-        = useStage(player, resetPlayer, connection, shapes, shapeCounter);
+        = useStage(player, resetPlayer, connection,  shapes, shapeCounter, setShapeCounter);
         // only setPlayer is not sent
 
     // component functions
@@ -61,17 +61,17 @@ export default function Tetris()
         setGameOver(false);
         setDropTime(1000);
         setStart(true); // set game started
-        resetPlayer(shapes, shapeCounter); // set shape
+        resetPlayer(shapes, shapeCounter, setShapeCounter);
         newGame.left = [ ...newGame.users ]; // ????
         setWinner(null);
-        // setScore setRows setLevel
         // used a useCallback hook
 
     }, [resetPlayer, setStage, shapes] );
 
-    const connect = useCallback(async () => {
-        if (!connection){
-            
+    const connect = useCallback(async function()
+    {
+        if (!connection)
+        {        
             connection = await createConnection();
             
             connection.on('joinRoomRes', room => {
@@ -125,9 +125,8 @@ export default function Tetris()
         }
     }, []); // removed the stage as a depency
 
-
-    function movePlayer(dir){
-        console.log(dir);
+    function movePlayer(dir)
+    {
         if (!checkCollision(player, stage, { x: dir, y: 0 }))
             updatePlayerPos({ x: dir, y: 0 });
     }
@@ -145,59 +144,63 @@ export default function Tetris()
                 playerRotate(stage, 1);
     }
 
+    function endGame()
+    {
+        console.log('game over');
+        setGameOver(true);
+        setDropTime(null);
+        setStart(false);
+        setShapeCounter(0);
+    }
+
     function drop(){
+        // if !gameOver
         if (!checkCollision(player, stage, {x: 0, y: 1}))
             updatePlayerPos({ x: 0, y: 1, collided: false});
-        else{
+        else
+        {
             if (player.pos.y < 1){
-                console.log('game over!');
+                // should no longer send spectra
+                // and when our stage is fully display
                 connection.emit('deadUser', connection.id);
-                setGameOver(true);
-                setDropTime(null);
-                setStart(false);
+                endGame();
             }
             updatePlayerPos({x: 0, y: 0, collided: true});
         }
     }
 
-    function keyUp({ keyCode }){
+    function keyUp({ keyCode })
+    {
         if (!gameOver){
-            console.log('key up');
             if (keyCode === 40)
                 setDropTime(1000);
         }
     }
 
-    function dropPlayer(){
+    function dropPlayer()
+    {
         setDropTime(null);
         drop();
     }
 
-    function callStartGame(){
+    function callStartGame()
+    {
         connection.emit('startGameReq', newGame.room);
         setStart(true);
     }
 
-    
-
+    // interval and effects
     useInterval(() => {
         drop();
     }, dropTime);
 
     useEffect(() => {
-        
         if (shapes)
             startGame()
     }, [shapes, startGame]);
 
     useEffect(() => {
-        
-        if (gameOver)
-            setShapeCounter(0)
-    }, [gameOver, shapeCounter, setShapeCounter]);
-
-    useEffect(() => {
-        connect()
+        connect();
     }, []);
 
     return (
@@ -211,15 +214,11 @@ export default function Tetris()
                 <Stage stage={stage}/>
                 <aside>
                     { gameOver ?
-                        ( <Display gameOver={gameOver} text="Game Over" />) : 
-                        (<div>
-                            <Display text="Score"/>
-                            <Display text="Rows"/>
-                            <Display text="Level"/>
-                        </div>)
+                        (<Display gameOver={gameOver} text="Game Over" />) : null
                     }
-                    <StartButton 
-                    callback={ callStartGame }/>
+                    { gameLeader ?
+                        (<StartButton callback={ callStartGame }/>) : null
+                    }
                 </aside> 
             </StyledTetris>
         </StyledTetrisWrapper>

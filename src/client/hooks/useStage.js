@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createStage } from '../gameHelpers';
 
-export function useStage(player, resetPlayer, connection)
+export function useStage(player, resetPlayer, connection, shapes, shapeCounter, setShapeCounter)
 {
     const [ stage, setStage ] = useState(createStage());
     const [rowCleared, setRowsCleared ] = useState(0);
@@ -10,8 +10,9 @@ export function useStage(player, resetPlayer, connection)
 
         setRowsCleared(0);
 
-        const sweepRows = (newStage) => {
-            newStage.reduce((ack, row) => {
+        const sweepRows = (newStage) =>
+        {
+            return newStage.reduce((ack, row) => {
                 if (row.findIndex(cell => cell[0] === 0) === -1) {
                     setRowsCleared(prev => prev + 1);
                     ack.unshift(new Array(newStage[0].length).fill([0, 'clear']));
@@ -41,13 +42,9 @@ export function useStage(player, resetPlayer, connection)
             });
 
             if (player.collided) {
-                resetPlayer();
+                resetPlayer(shapes, shapeCounter, setShapeCounter);
                 connection.emit('endGameReq', 'x');
-                let temp = sweepRows(newStage);
-                console.log(temp);
-                console.log('-------');
-               
-                return newStage;
+                return sweepRows(newStage);
             }   
             return newStage;
         }

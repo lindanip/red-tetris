@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-import { randomTetrominos, TETROMINOS } from '../tetrominos';
+import { TETROMINOS } from '../tetrominos';
 import { STAGE_WIDTH, checkCollision } from '../gameHelpers';
 
 export function usePlayer()
@@ -31,14 +31,14 @@ export function usePlayer()
         console.log(stage);
         while (checkCollision(clonedPlayer, stage, { x: 0, y: 0 })) {
             
-            break ;
-            // clonedPlayer.pos.x += offset;
-            // offset = -(offset + (offset > 0 ? 1 : -1));
-            // if (offset > clonedPlayer.tetromino[0].length) {
-            //     rotate(clonedPlayer.tetromino, -dir);
-            //     clonedPlayer.pos.x = pos;
-            //     return ;
-            // }
+           // break ;
+            clonedPlayer.pos.x += offset;
+            offset = -(offset + (offset > 0 ? 1 : -1));
+            if (offset > clonedPlayer.tetromino[0].length) {
+                rotate(clonedPlayer.tetromino, -dir);
+                clonedPlayer.pos.x = pos;
+                return ;
+            }
         }
 
        setPlayer(clonedPlayer);
@@ -52,29 +52,20 @@ export function usePlayer()
         }));
     }
 
-    const resetPlayer = useCallback(() => {
+    const resetPlayer = useCallback((shapes, shapesCounter, setShapesCounter) => {
         setPlayer({
             pos: { x: STAGE_WIDTH/ 2 - 2, y: 0 },
-            tetromino: randomTetrominos().shape,
+            tetromino: shapes[shapesCounter].shape,
             collided: false
         });
-        
+        if (shapesCounter + 1 > shapes.length - 1)
+            setShapesCounter(0); // check for any that depened on this
+        else
+            setShapesCounter(shapesCounter + 1);
     }, []);
 
     return [player, updatePlayerPos, resetPlayer, playerRotate];
 }
-
-
-// resetPlayer
-// if (shapeTrack + 1 > shapes.length - 1) {
-        //     setShapeTrack(0);
-        // } else {
-        //     setShapeTrack(shapeTrack + 1);
-        // } this  setshape track will be a dependcy and param to hook
-
-
-
-
 
 
 //add 
