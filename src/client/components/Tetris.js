@@ -1,7 +1,7 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useReducer } from 'react';
 import io from 'socket.io-client';
 
-import Stage from './Stage';
+import Stage, { SpectraStage } from './Stage';
 import Display from './Display';
 import StartButton from './StartButton';
 
@@ -12,14 +12,15 @@ import { useInterval } from '../hooks/useInterval';
 import { StyledTetrisWrapper , StyledTetris } from './styles/StyledTetris';
 import { createStage, checkCollision } from '../gameHelpers';
 
-let connection = null;
+export let connection = null;
 let newGame = {
     users: [],
     left: [],
     room: null,
 }
 
-function createConnection(){
+function createConnection()
+{
     return new Promise((resolve, reject) => {
         if (!connection){
             try{
@@ -33,13 +34,53 @@ function createConnection(){
     });
 }
 
+
+const ACTIONS = {
+    ADD_USER: 'add_user',
+    UPDATE_USER_STAGE: 'update_user_stage',
+    REMOVE_USER: 'remove_user'
+};
+
+
+function reduceGameState(gameState,  action)
+{
+    if (action.type === 'add_users')
+        return { ...gameState, users: action.payload.users};
+    else if (action.type === 'update_users_left') {
+        const newUser = gameState.users.map(row => {
+            return { ...row, board: null };
+        });
+        return { ...gameState, left: newUser }
+    }
+    else if (action.type === 'update_user_spectra') {
+        const newUser = gameState.users.map(row => {
+            if (row.username === action.payload.usernameRes)
+                return { ...row, board: action.payload.spectra };
+            
+            return row;
+        });
+        return { ...gameState, left: newUser }
+    }
+    // else if (action.type === 'remove_user') {
+        
+    // }
+    else {
+        return gameState;
+    }
+}
+
+
 export default function Tetris()
 {
     console.log('re-render');
-    // state and hooks
+    
+    const [gameState, dispatch ] = useReducer(reduceGameState, {
+        users: [], left: [] });
+    const [ abc, setAbc ] = useState(0);
+    const [ roomState, setRoomState ] = useState(null);
     const [ gameOver, setGameOver ] = useState(false);
     const [ dropTime, setDropTime ] = useState(null);
-    const [ user, setUser ] = useState(null);
+    const [ user, setUser ] = useState(null); // has player object used for display
     const [ winner, setWinner ] = useState(null);
     const [ start, setStart ] = useState(false);
     const [ shapes, setShapes ] = useState(null);
@@ -50,22 +91,25 @@ export default function Tetris()
         = usePlayer(shapeCounter);
 
     const [ stage, setStage, rowsCleared, addRow ]
-        = useStage(player, resetPlayer, connection,  shapes, shapeCounter, setShapeCounter);
+        = useStage({ player, resetPlayer, connection,  shapes,
+            shapeCounter, setShapeCounter, user });
         // only setPlayer is not sent
 
-    // component functions
+    
     const startGame = useCallback(() => {
-        
+
         console.log('start game');
         setStage(createStage());
         setGameOver(false);
         setDropTime(1000);
         setStart(true); // set game started
         resetPlayer(shapes, shapeCounter, setShapeCounter);
-        newGame.left = [ ...newGame.users ]; // ????
+        
+        newGame.left = [ ...newGame.users ];
+        dispatch({ type: 'update_users_left' });
+        dispatch({ type: 'left_to_single_array'});
+       
         setWinner(null);
-        // used a useCallback hook
-
     }, [resetPlayer, setStage, shapes] );
 
     const connect = useCallback(async function()
@@ -75,25 +119,30 @@ export default function Tetris()
             connection = await createConnection();
             
             connection.on('joinRoomRes', room => {
-                newGame.room = room;
-                console.log('joinRoomRes: ' + room);
+                setRoomState(room);
+            });
+
+            connection.on('crowned',() => {
+                setGameLeader(true);
             });
 
             connection.on('updateJoinedUsers', usersRes => {
-                console.log('updated joined users');
-                console.log(usersRes);
-                console.log(newGame);
                 newGame.users = usersRes;
-                if (newGame.users[0] && newGame.users[0].id == connection.id)
-                    setGameLeader(true);
+                dispatch({ type: 'add_users', payload: { users: usersRes }});
                 setUser(newGame.users.find((user) => user.id === connection.id));
+            });
+
+            connection.on('shareMyStageSRes', ({ user: usernameRes, spectra }) => {
+                dispatch({type: 'update_user_spectra', payload: { usernameRes, spectra }});
             });
 
             connection.on('startGameRes', (room) => {
                 console.log('startGameRes');
-                connection.emit('updatePlayerReq', stage); // ????
+                connection.emit('updatePlayerReq', stage); // send stage back to be updated in allPlayers array
 
-                if (newGame.users[0] && newGame.users[0].id == connection.id)
+                // must also ssend mine backk
+                // && newGame.users[0].id == connection.id 
+                if (newGame.users[0])
                     connection.emit('getShapesReq', (room));
             });
 
@@ -123,8 +172,10 @@ export default function Tetris()
                 connection.emit('updatePlayer', stage);
             });
         }
-    }, []); // removed the stage as a depency
+        return connection.emit('disconnect');
+    }, []);
 
+    
     function movePlayer(dir)
     {
         if (!checkCollision(player, stage, { x: dir, y: 0 }))
@@ -171,10 +222,8 @@ export default function Tetris()
 
     function keyUp({ keyCode })
     {
-        if (!gameOver){
-            if (keyCode === 40)
-                setDropTime(1000);
-        }
+        if (!gameOver && keyCode === 40)
+            setDropTime(1000);
     }
 
     function dropPlayer()
@@ -185,11 +234,10 @@ export default function Tetris()
 
     function callStartGame()
     {
-        connection.emit('startGameReq', newGame.room);
-        setStart(true);
+        connection.emit('startGameReq', roomState);
     }
 
-    // interval and effects
+
     useInterval(() => {
         drop();
     }, dropTime);
@@ -197,12 +245,14 @@ export default function Tetris()
     useEffect(() => {
         if (shapes)
             startGame()
-    }, [shapes, startGame]);
+    }, [shapes]);
 
     useEffect(() => {
-        connect();
+        const callback = connect();
+        return () => callback;
     }, []);
 
+    // check if there is a wwinner or not before we display the button
     return (
         <StyledTetrisWrapper
             role="button" 
@@ -213,13 +263,24 @@ export default function Tetris()
             <StyledTetris>
                 <Stage stage={stage}/>
                 <aside>
-                    { gameOver ?
-                        (<Display gameOver={gameOver} text="Game Over" />) : null
+                    { user ? (<p>{ user.username }</p>) : null }
+                    { gameOver ? (<p>game over</p>) : null }
+                    { start ? null: 
+                        gameLeader ?
+                            (<StartButton callback={ callStartGame }/>) :
+                            (<p>waiting for leader to start game</p>)
                     }
-                    { gameLeader ?
-                        (<StartButton callback={ callStartGame }/>) : null
+                    {
+                        // check with socket id
+                        gameState.left.map((playerObj, index) => {
+                            return (playerObj.username !== user.username ?
+                                <SpectraStage key={index} player={playerObj}/> :
+                                null
+                            )   
+                        })
                     }
-                </aside> 
+                    
+                </aside>
             </StyledTetris>
         </StyledTetrisWrapper>
     );

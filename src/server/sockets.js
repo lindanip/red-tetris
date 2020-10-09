@@ -15,10 +15,9 @@ function generateShapes(){
 
 function initEngine(io){
 
-    let allUsers = [];
+    var allPlayers = [];
 
     io.on('connection', socket => {
-        
         console.log('on connection');
         
         let room = new Game().room;
@@ -39,33 +38,38 @@ function initEngine(io){
                     socket.join(room);
                     
                     let player = new Player(socket.id, username, room);
-                    allUsers.push(player);
+                    allPlayers.push(player);
                     player = null;
 
+                    const findLeader = allPlayers.findIndex(player => player.room === room);
+                    
+                    if (allPlayers[findLeader].leader === false){
+                        allPlayers[findLeader].leader = true;
+                        io.to(allPlayers[findLeader].id).emit('crowned');
+                    }
+                    
                     io.to(room).emit('joinRoomRes', room);
-
                     io.to(room).emit('updateJoinedUsers',
-                        allUsers.filter(res => res.room === room)
+                        allPlayers.filter(res => res.room === room)
                     );
                 }
             }
         });
 
         socket.on('updatePlayerReq', player => {
-            allUsers = allUsers.map(user => {
+            allPlayers = allPlayers.map(user => {
                 if (user.id === socket.id)
-                    user.board = [ ...player]
+                    user.board = [ ...player] // stage
                 return user;
             });
 
             io.to(room).emit('updateJoinedUsers',
-                allUsers.filter(res => res.room === room)
+                allPlayers.filter(res => res.room === room)
             );
         });
 
         socket.on('startGameReq', room => {
             console.log('on startGameReq');
-            console.log(room);
             io.to(room).emit('startGameRes', room);
         });
 
@@ -79,13 +83,22 @@ function initEngine(io){
         });
 
         socket.on('userGameOverReq', userId => {
+            console.log('on gameOverReq');
             socket.to(room).emit('userGameOverRes', userId);
         });
 
-        socket.on('rowClearedReq', () => {
+        socket.on('deadUser', userSocketId => {
+            socket.to().emit();
+        });
+
+        socket.on('rowClearedCReq', () => {
             console.log('on rowCleared');
             socket.to(room).emit('rowClearedRes');
         });
+
+        socket.on('shareMyStageCReq', ({ user, spectra }) => {
+            socket.to(room).emit('shareMyStageSRes', { user , spectra });
+        })
 
         socket.on('setWinnerReq', winner => {
             console.log('on setWinner');
@@ -93,11 +106,13 @@ function initEngine(io){
         });
 
         socket.on('disconnect', () => {
-            console.log('on disconnect');
-            allUsers.splice(allUsers.findIndex(user => {
-                user.id == socket.id &&
-                user.room == room, 1
-            }));
+            allPlayers = allPlayers.filter(player => player.id !== socket.id)
+            let newleader = allPlayers.findIndex(player => player.room === room);
+        
+            if (newleader !== -1) {
+                allPlayers[newleader].leader = true;
+                io.to(allPlayers[newleader].id).emit('crowned');
+            }
             socket.to(room).emit('userLeftRes', socket.id);
         });
     });

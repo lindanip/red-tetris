@@ -11,3 +11,10 @@ export const StyledStage = styled.div`
     width: 100%;
     max-width: 25vw;
 `;
+
+export const StyledSpectraStage = styled.div`
+    display: flex;
+    border: 1px solid black;
+    height: 10px;
+    padding: 5px;
+`;

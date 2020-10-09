@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createStage } from '../gameHelpers';
 
-export function useStage(player, resetPlayer, connection, shapes, shapeCounter, setShapeCounter)
+export function useStage({ player, resetPlayer, connection, shapes, shapeCounter, setShapeCounter, user})
 {
     const [ stage, setStage ] = useState(createStage());
     const [rowCleared, setRowsCleared ] = useState(0);
@@ -41,9 +41,23 @@ export function useStage(player, resetPlayer, connection, shapes, shapeCounter, 
                 });
             });
 
+            const returnSpectra = () => {
+                for (let y = 0; y < newStage.length; y++) {
+                    for (let x = 0; x < newStage[0].length; x++){
+                        if (newStage[y][x][1] === 'merged')
+                            return newStage[y];
+                    }
+                }
+                return ;
+            }
+
             if (player.collided) {
+                let spectra = returnSpectra();
+                if (spectra){
+                    connection.emit('shareMyStageCReq', { user: user.username, spectra });
+                }
+
                 resetPlayer(shapes, shapeCounter, setShapeCounter);
-                connection.emit('endGameReq', 'x');
                 return sweepRows(newStage);
             }   
             return newStage;
@@ -52,7 +66,7 @@ export function useStage(player, resetPlayer, connection, shapes, shapeCounter, 
 
     },[player.collided, player.pos.x, player.pos.y, player.tetromino, resetPlayer, connection]); // add resetplayer + socket + rowsCleared + shapeTrack + shapes
     
-    return [stage, setStage, rowCleared]; // add addRow function
+    return [stage, setStage, rowCleared]; // addd addRow function
 }
 
 

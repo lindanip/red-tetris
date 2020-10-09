@@ -1,14 +1,19 @@
 import React from 'react';
-import { StyledCell } from './styles/StyledCell';
+import { StyledCell, StyledSpectraCell } from './styles/StyledCell';
 import { TETROMINOS } from '../tetrominos';
 
-function Cell({ type })
+export function Cell({ type })
 {
     return (
-        // <StyledCell type={ type } color={ newPiece.TETROMINOS[type].color } />
         <StyledCell type={type} color={TETROMINOS[type].color} />
       );
 }
 
-// export default React.memo(cell);
-export default Cell;
+export function SpectraCell({ type })
+{
+    return (
+        <StyledSpectraCell type={type} color={TETROMINOS[type].color} />
+      );
+}
+
+// export defauult React.memo(cell);k

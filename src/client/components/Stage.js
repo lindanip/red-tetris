@@ -1,10 +1,8 @@
 import React from 'react';
-import { StyledStage } from './styles/StyledStage';
-import Cell from './Cell';
+import { StyledStage, StyledSpectraStage } from './styles/StyledStage';
+import { Cell, SpectraCell} from './Cell';
 
-
-
-function Stage({ stage }){
+export default function Stage({ stage }){
     return (
         <StyledStage width={stage[0].length} height={stage.length}>
             {stage.map(row => 
@@ -16,11 +14,28 @@ function Stage({ stage }){
     );
 }
 
-export default Stage;
+export function SpectraStage({ player }){
+   if (player.board) {
+        return (
+            <StyledSpectraStage>
+                {
+                    <div>{player.username}</div>
+                }
+                {
+                    player.board.map((row, index) =>
+                        <SpectraCell key={index} type={row[0]}/>
+                    )
+                }
+            </StyledSpectraStage>
+        );
+   }
+   return null;
+}
 
 
 
-// function StageTwo({ stage, type = 0 }){
+
+// functsion StageTwo({ stage, type = 0 }){
 //     if (type == 0)
 //         return (
 //             <StyledStage width={ stage[0].length } height={stage.length}>
