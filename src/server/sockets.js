@@ -70,12 +70,7 @@ function initEngine(io){
 
         socket.on('startGameReq', room => {
             console.log('on startGameReq');
-            io.to(room).emit('startGameRes', room);
-        });
-
-        socket.on('getShapesReq', room => {
-            console.log('on shapesReq');
-            io.to(room).emit('getShapesRes', generateShapes());
+            io.to(room).emit('startGameRes', generateShapes());
         });
 
         socket.on('endGameReq', () => {
@@ -96,8 +91,9 @@ function initEngine(io){
             socket.to(room).emit('rowClearedRes');
         });
 
-        socket.on('shareMyStageCReq', ({ user, spectra }) => {
-            socket.to(room).emit('shareMyStageSRes', { user , spectra });
+        socket.on('shareMyStageCReq', ({ spectra }) => {
+            console.log("pro kid", socket.id);
+            socket.to(room).emit('shareMyStageSRes', { id: socket.id, spectra });
         })
 
         socket.on('setWinnerReq', winner => {

@@ -44,6 +44,7 @@ const ACTIONS = {
 
 function reduceGameState(gameState,  action)
 {
+    console.log(action);
     if (action.type === 'add_users')
         return { ...gameState, users: action.payload.users};
     else if (action.type === 'update_users_left') {
@@ -53,15 +54,16 @@ function reduceGameState(gameState,  action)
         return { ...gameState, left: newUser }
     }
     else if (action.type === 'update_user_spectra') {
-        const newUser = gameState.users.map(row => {
-            if (row.username === action.payload.usernameRes)
-                return { ...row, board: action.payload.spectra };
+        const newUser = gameState.left.map(player => {
+            if (player.id === action.payload.id)
+                return { ...player, board: action.payload.spectra };
             
-            return row;
+            return player;
         });
+
         return { ...gameState, left: newUser }
     }
-    // else if (action.type === 'remove_user') {
+    // else iff (action.type === 'remove_user') {
         
     // }
     else {
@@ -107,10 +109,10 @@ export default function Tetris()
         
         newGame.left = [ ...newGame.users ];
         dispatch({ type: 'update_users_left' });
-        dispatch({ type: 'left_to_single_array'});
+        //dispatch({ type: 'left_to_single_array'});
        
         setWinner(null);
-    }, [resetPlayer, setStage, shapes] );
+    }, [shapes] );
 
     const connect = useCallback(async function()
     {
@@ -132,22 +134,14 @@ export default function Tetris()
                 setUser(newGame.users.find((user) => user.id === connection.id));
             });
 
-            connection.on('shareMyStageSRes', ({ user: usernameRes, spectra }) => {
-                dispatch({type: 'update_user_spectra', payload: { usernameRes, spectra }});
+            connection.on('shareMyStageSRes', ({ id , spectra }) => {
+                console.log('bad');
+                dispatch({type: 'update_user_spectra', payload: { id,  spectra }});
             });
 
-            connection.on('startGameRes', (room) => {
+            connection.on('startGameRes', (shapesRes) => {
                 console.log('startGameRes');
-                connection.emit('updatePlayerReq', stage); // send stage back to be updated in allPlayers array
-
-                // must also ssend mine backk
-                // && newGame.users[0].id == connection.id 
-                if (newGame.users[0])
-                    connection.emit('getShapesReq', (room));
-            });
-
-            connection.on('getShapesRes', shapesRes => {
-                console.log('getShapesRes');
+                // connection.emit('updatePlayerReq', stage); // send stage back to be updated in allPlayers array
                 setShapes(shapesRes);
             });
 
@@ -253,6 +247,7 @@ export default function Tetris()
     }, []);
 
     // check if there is a wwinner or not before we display the button
+    // console.log(gameState);
     return (
         <StyledTetrisWrapper
             role="button" 
@@ -273,7 +268,7 @@ export default function Tetris()
                     {
                         // check with socket id
                         gameState.left.map((playerObj, index) => {
-                            return (playerObj.username !== user.username ?
+                            return (playerObj.id !== connection.id ?
                                 <SpectraStage key={index} player={playerObj}/> :
                                 null
                             )   

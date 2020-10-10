@@ -16,4 +16,4 @@ export function SpectraCell({ type })
       );
 }
 
-// export defauult React.memo(cell);k
+// export defauult React.memo(cell);

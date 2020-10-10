@@ -54,7 +54,7 @@ export function useStage({ player, resetPlayer, connection, shapes, shapeCounter
             if (player.collided) {
                 let spectra = returnSpectra();
                 if (spectra){
-                    connection.emit('shareMyStageCReq', { user: user.username, spectra });
+                    connection.emit('shareMyStageCReq', { spectra });
                 }
 
                 resetPlayer(shapes, shapeCounter, setShapeCounter);
