@@ -2,8 +2,7 @@ const Game = require('./classes/Game');
 const Player = require('./classes/Player');
 const Piece = require('./classes/Piece');
 
-function generateShapes(){
-    
+function generateShapes(){   
     let shapes = [];
 
     for (let i = 0; i < 50 ; i++)
@@ -12,21 +11,20 @@ function generateShapes(){
     return shapes;
 }
 
-
-function initEngine(io){
-
+function initEngine(io)
+{
     var allPlayers = [];
 
-    io.on('connection', socket => {
-        console.log('on connection');
-        
+    io.on('connection', socket =>
+    {
+        console.log('connection...');
         let room = new Game().room;
         let username = null;
     
-        socket.on('joinRoomReq', hash => {
-            // !for multiplayer user
-            if (hash){
-                if (hash[0] === '#'){
+        socket.on('joinRoomReq', hash =>
+        {
+            if (hash) {
+                if (hash[0] === '#') {
                     
                     let hashArray = hash.split('[');
                     room = hashArray[0].substr(1);
@@ -41,9 +39,9 @@ function initEngine(io){
                     allPlayers.push(player);
                     player = null;
 
-                    const findLeader = allPlayers.findIndex(player => player.room === room);
+                    let findLeader = allPlayers.findIndex(player => player.room === room);
                     
-                    if (allPlayers[findLeader].leader === false){
+                    if (allPlayers[findLeader].leader === false) {
                         allPlayers[findLeader].leader = true;
                         io.to(allPlayers[findLeader].id).emit('crowned');
                     }
@@ -56,48 +54,46 @@ function initEngine(io){
             }
         });
 
-        socket.on('updatePlayerReq', player => {
-            allPlayers = allPlayers.map(user => {
-                if (user.id === socket.id)
-                    user.board = [ ...player] // stage
-                return user;
-            });
-
-            io.to(room).emit('updateJoinedUsers',
-                allPlayers.filter(res => res.room === room)
-            );
-        });
-
         socket.on('startGameReq', room => {
-            console.log('on startGameReq');
+            console.log('on start game req ....');
             io.to(room).emit('startGameRes', generateShapes());
         });
 
-        socket.on('endGameReq', () => {
-            console.log('on endGameReq');
-        });
+        socket.on('gameOverCReq', () =>
+        {
+            let index = allPlayers.findIndex(row => row.id === socket.id);
+            if (index !== -1)
+                allPlayers[index].isGameOver = true;
 
-        socket.on('userGameOverReq', userId => {
-            console.log('on gameOverReq');
-            socket.to(room).emit('userGameOverRes', userId);
-        });
+            let temp = allPlayers.filter(player => player.room == room);
+            let checkWinner = 0;
 
-        socket.on('deadUser', userSocketId => {
-            socket.to().emit();
+            for (let i = 0; i < temp.length; i++) {
+                if (temp[i].isGameOver == false && temp[i].room == room)
+                    checkWinner++;
+            }
+
+            if (checkWinner == 1) {
+                for (let i = 0; i < temp.length; i++) {
+                    if (temp[i].isGameOver == false && temp[i].room == room) {
+                        io.to(room).emit('setWinner', {id : temp[i].id, playerName: temp[i].username});
+                        break ;
+                    }
+                }
+            }
+            socket.to(room).emit('deadPlayer', {id: socket.id});
         });
 
         socket.on('rowClearedCReq', () => {
-            console.log('on rowCleared');
-            socket.to(room).emit('rowClearedRes');
+            console.log('on row cleared ...');
+            socket.to(room).emit('rowClearedSRes');
         });
 
         socket.on('shareMyStageCReq', ({ spectra }) => {
-            console.log("pro kid", socket.id);
             socket.to(room).emit('shareMyStageSRes', { id: socket.id, spectra });
         })
 
         socket.on('setWinnerReq', winner => {
-            console.log('on setWinner');
             socket.nsp.to(room).emit('setWinnerRes', winner.username);
         });
 
@@ -109,7 +105,7 @@ function initEngine(io){
                 allPlayers[newleader].leader = true;
                 io.to(allPlayers[newleader].id).emit('crowned');
             }
-            socket.to(room).emit('userLeftRes', socket.id);
+            socket.to(room).emit('playerBailed', socket.id);
         });
     });
 }

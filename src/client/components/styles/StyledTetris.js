@@ -1,23 +1,20 @@
 import styled from 'styled-components';
 
 export const StyledTetrisWrapper = styled.div`
-    width: 100vw;
-    height: 100vh;
-    background-size: cover;
-    overflow: hidden;
+    width: 100%;
+    height: 100%;
 `;
 
 export const StyledTetris = styled.div`
     display: flex;
     align-items: flex-start;
-    padding: 40px;
-    margin: 0 auto;
-    max-width: 900px;
 
     aside {
-        width: 100%;
-        max-width: 200px;
         display: block;
-        padding: 0 20px;
+        width: 90%;
+        height: 100%;
+        margin-left: 5%;
+        border: 3px solid red;
+        background-color: rgba(0, 0, 0, 0.7);
     }
 `;

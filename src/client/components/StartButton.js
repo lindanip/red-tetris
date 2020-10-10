@@ -1,14 +1,17 @@
 import React from 'react';
-import { StyledStartButton } from './styles/StyledStartButton';
+import styled from 'styled-components';
 
-function StartButton({ callback } ){
-    // params { callback, mainSocket, setStart, newGame}
-    // onClick (() => callback(mainSocket, setStart, newGame))
+const StyledStartButton = styled.button`
+    background-color: green;
+    padding: 9px;
+    border: 1px solid black;
+    margin-left: 12px;
+`;
+
+export default function StartButton({ callback }){
     return (
         <StyledStartButton onClick={ () => callback() }>
             start button
         </StyledStartButton>
     );
 }
-
-export default StartButton;

@@ -1,9 +1,16 @@
 import React from 'react';
-import { StyledDisplay } from './styles/StyledDisplay';
+import styled from 'styled-components';
 
-function Display({ gameOver, text }){
+const StyledDisplay = styled.div`
+    font-size: 18px;
+    color: white;
+    padding: 6px;
+    margin-left: 12px;
+`;
+
+function Display({ text }){
     return (
-        <StyledDisplay gameOver={ gameOver }>{ text }</StyledDisplay>
+        <StyledDisplay>{ text }</StyledDisplay>
     );
 }
 

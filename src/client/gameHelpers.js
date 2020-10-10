@@ -1,5 +1,11 @@
 export const STAGE_WIDTH = 10;
 export const STAGE_HEIGHT = 20;
+export const ACTIONS = {
+    ADD_PLAYER: 'add_player',
+    UPDATE_PLAYER_SPECTRA: 'update_player_spectra',
+    PLAYER_GAME_OVER: 'player_game_over',
+    REMOVE_PLAYER: 'remove_player'
+};
 
 export function createStage(){
     return Array.from(Array(STAGE_HEIGHT), () => Array(STAGE_WIDTH).fill([0, 'clear'])); 

@@ -5,7 +5,7 @@ class Player extends Game{
         super(room);
         this.id = id;
         this.username = username;
-        // this.room = room;
+        this.isGameOver = false;
         this.board = null;
         this.leader = false;
     }

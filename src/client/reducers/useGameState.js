@@ -28,9 +28,17 @@ export default function useGameState(){
     
             return { ...gameState, left: newUser }
         }
-        // else if (action.type === 'remove_user') {
-            
-        // }
+        else if (action.type === 'set_game_over') {
+            let newPlayers = gameState.left.map(player => {
+                if (player.id === action.payload.id){
+                    console.log(player);
+                    return { ...player, isGameOver: true }
+                }
+                return player;
+            });
+            console.log(newPlayers);
+            return { ...gameState, left: newPlayers}; 
+        }
         else {
             return gameState;
         }
