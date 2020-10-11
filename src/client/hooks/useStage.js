@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createStage } from '../gameHelpers';
 
 export function useStage({ player, resetPlayer, connection, shapes, shapeCounter, setShapeCounter, user})
@@ -6,16 +6,20 @@ export function useStage({ player, resetPlayer, connection, shapes, shapeCounter
     const [ stage, setStage ] = useState(createStage());
     const [rowCleared, setRowsCleared ] = useState(0);
 
+    const addUndesRow = useCallback((oldstage, n) =>{
+        console.log(oldstage);
+        console.log(n);
+    })
+
     useEffect(() => {
-
         setRowsCleared(0);
-
         const sweepRows = (newStage) =>
         {
             return newStage.reduce((ack, row) => {
-                if (row.findIndex(cell => cell[0] === 0) === -1) {
-                    setRowsCleared(prev => prev + 1);
+                if (row.findIndex(cell => cell[0] === 0 || cell[0] === 1) === -1) {
+                    setRowsCleared(prevRowCleared => prevRowCleared + 1);
                     ack.unshift(new Array(newStage[0].length).fill([0, 'clear']));
+                    // connection.emit('rowClearedCReq', {n : rowCleared});
                     return ack;
                 }
                 ack.push(row);
@@ -58,29 +62,15 @@ export function useStage({ player, resetPlayer, connection, shapes, shapeCounter
                 }
 
                 resetPlayer(shapes, shapeCounter, setShapeCounter);
-                return sweepRows(newStage);
+
+                let originalStage = sweepRows(newStage);
+                return originalStage;
             }   
             return newStage;
         }
         setStage(prev => updateStage(prev));
 
-    },[player.collided, player.pos.x, player.pos.y, player.tetromino, resetPlayer, connection]); // add resetplayer + socket + rowsCleared + shapeTrack + shapes
+    },[player.collided, player.pos.x, player.pos.y, player.tetromino]); //removed reset player as dependcy + shapeTrack + shapes
     
-    return [stage, setStage, rowCleared]; // addd addRow function
+    return [stage, setStage, rowCleared, setRowsCleared, addUndesRow];
 }
-
-
-
-
-
-
-
-
-
-// const addRow = (stage, setStage) => {
-    //     for (let i = 1; i < stage.length; i++)
-    //         stage[i - 1] = [...stage[i]];
-
-    //     stage[stage.length - 1] = new Array(stage[0].length).fill(["B", "test"]);
-    //     setStage(stage);
-    // };

@@ -1,5 +1,4 @@
-import React, { useCallback, useState, useEffect, useReducer } from 'react';
-import io from 'socket.io-client';
+import React, { useCallback, useState, useEffect } from 'react';
 
 import Stage, { SpectraStage } from './Stage';
 import Display from './Display';
@@ -11,30 +10,17 @@ import { useInterval } from '../hooks/useInterval';
 import useGameState from '../reducers/useGameState';
 
 import { StyledTetrisWrapper , StyledTetris } from './styles/StyledTetris';
-import { createStage, checkCollision } from '../gameHelpers';
+import { createStage, checkCollision, ACTIONS } from '../gameHelpers';
+import { createConnection } from '../sockets';
 
 export let connection = null; 
-
-function createConnection()
-{
-    return new Promise((resolve, reject) => {
-        if (!connection){
-            try{
-                let connection = io.connect('http://localhost:2000');
-                connection.emit('joinRoomReq', window.location.hash);
-                resolve(connection);
-            }catch(e){
-                reject(e);
-            }
-        }
-    });
-}
 
 export default function Tetris()
 {
     console.log('re-render');
 
     const [ gameState, dispatch] = useGameState();
+    // console.log(gameState);
     const [ roomState, setRoomState ] = useState(null);
     const [ gameOver, setGameOver ] = useState(false);
     const [ dropTime, setDropTime ] = useState(null);
@@ -47,9 +33,26 @@ export default function Tetris()
 
     const [ player, updatePlayerPos, resetPlayer, playerRotate ]
         = usePlayer(shapeCounter);
-    const [ stage, setStage, rowsCleared, addRow ]
+    const [ stage, setStage, rowsCleared, setRowsCleared, addUndesRow ]
         = useStage({ player, resetPlayer, connection,  shapes,
-            shapeCounter, setShapeCounter, user });
+            shapeCounter, setShapeCounter, user });   
+
+    if (rowsCleared > 0) {
+        console.log(rowsCleared);
+        for (let i = 0; i < rowsCleared; i++)
+            connection.emit('rowClearedCReq', {n : rowsCleared});
+        setRowsCleared(0);
+        console.log(rowsCleared);
+    }
+
+    function endGame()
+    {
+        console.log('game over');
+        setGameOver(true);
+        setDropTime(null);
+        setStart(false);
+        setShapeCounter(0);
+    }
     
     const startGame = useCallback(function()
     {
@@ -80,11 +83,11 @@ export default function Tetris()
             connection.on('updateJoinedUsers', usersRes => {
                 setUser(gameState.users.find((user) => user.id === connection.id));
 
-                dispatch({ type: 'add_users', payload: { users: usersRes }});
+                dispatch({ type: ACTIONS.ADD_PLAYER, payload: { users: usersRes }});
             });
 
             connection.on('shareMyStageSRes', ({ id , spectra }) => {
-                dispatch({type: 'update_user_spectra', payload: { id,  spectra }});
+                dispatch({type: ACTIONS.UPDATE_PLAYER_SPECTRA, payload: { id,  spectra }});
             });
 
             connection.on('startGameRes', (shapesRes) => {
@@ -93,16 +96,32 @@ export default function Tetris()
 
             connection.on('deadPlayer', ({id}) => {
                 console.log('player dead', id);
-                dispatch({type: 'set_game_over', payload: {id}});
+                dispatch({type: ACTIONS.PLAYER_GAME_OVER, payload: {id}});
             });
 
             connection.on('setWinner', ({id}) => {
-                // setStart(false);
                 setWinner(id);
+                endGame();
+            });
+
+            connection.on('rowClearedSRes', ({n, id}) => {
+                setDropTime(null);
+
+                setStage(prevStage => {
+                    for (let i = 1; i < prevStage.length; i++){
+                        prevStage[i - 1] = [ ...prevStage[i]];
+                    }
+                    prevStage[prevStage.length - 1] = new Array(prevStage[0].length).fill([1, 'meged']);
+                    return (prevStage);
+                });
+
+                updatePlayerPos({ x: 0, y: 0, collided: false });
+                setDropTime(1000);
             });
 
             connection.on('playerBailed', ({id}) => {
-                dispatch({type: 'bailed_player', payload: {id}});
+                console.log(id);
+                dispatch({type: ACTIONS.REMOVE_PLAYER, payload: {id}});
             });
         }
         return connection.emit('disconnect');
@@ -126,16 +145,6 @@ export default function Tetris()
                 playerRotate(stage, 1);
     }
 
-    function endGame()
-    {
-        console.log('game over');
-        setGameOver(true);
-        setDropTime(null);
-        setStart(false);
-        // setShapes(null);;
-        setShapeCounter(0);
-    }
-
     function drop()
     {
         if (!checkCollision(player, stage, {x: 0, y: 1}))
@@ -144,7 +153,9 @@ export default function Tetris()
         {
             if (player.pos.y < 1){
                 connection.emit('gameOverCReq');
-                endGame();
+                setGameOver(true);
+                setDropTime(null);
+                setShapeCounter(0);
             }
             updatePlayerPos({x: 0, y: 0, collided: true});
         }

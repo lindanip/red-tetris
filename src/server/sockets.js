@@ -55,7 +55,11 @@ function initEngine(io)
         });
 
         socket.on('startGameReq', room => {
-            console.log('on start game req ....');
+            allPlayers = allPlayers.map(row => {
+                if (row.room === room)
+                    row.isGameOver = false;
+                return row;
+            });
             io.to(room).emit('startGameRes', generateShapes());
         });
 
@@ -67,7 +71,7 @@ function initEngine(io)
 
             let temp = allPlayers.filter(player => player.room == room);
             let checkWinner = 0;
-
+            
             for (let i = 0; i < temp.length; i++) {
                 if (temp[i].isGameOver == false && temp[i].room == room)
                     checkWinner++;
@@ -84,9 +88,9 @@ function initEngine(io)
             socket.to(room).emit('deadPlayer', {id: socket.id});
         });
 
-        socket.on('rowClearedCReq', () => {
+        socket.on('rowClearedCReq', n => {
             console.log('on row cleared ...');
-            socket.to(room).emit('rowClearedSRes');
+            socket.to(room).emit('rowClearedSRes', ({n, id: socket.id}));
         });
 
         socket.on('shareMyStageCReq', ({ spectra }) => {
@@ -105,7 +109,8 @@ function initEngine(io)
                 allPlayers[newleader].leader = true;
                 io.to(allPlayers[newleader].id).emit('crowned');
             }
-            socket.to(room).emit('playerBailed', socket.id);
+            console.log('what is the is ', socket.id);
+            socket.to(room).emit('playerBailed', {id: socket.id});
         });
     });
 }

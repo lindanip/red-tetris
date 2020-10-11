@@ -4,6 +4,11 @@ export const TETROMINOS = {
         color: '0, 0, 0'
     },
 
+    1: {
+        shape: [['D']],
+        color: '50, 50, 50'
+    },
+
     I: {
         shape: [
             [0, 'I', 0, 0],

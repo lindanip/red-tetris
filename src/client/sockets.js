@@ -1,7 +1,15 @@
-import { useCallback } from 'react';
+// import { useCallback } from 'react';;
 import io from 'socket.io-client';
 
-export const socket = useCallback(() => {
-    const socket = io.connect('http://localhost:3000');
-    return socket;
-}, []);
+export function createConnection()
+{
+    return new Promise((resolve, reject) => {
+        try{
+            let connection = io.connect('http://localhost:2000');
+            connection.emit('joinRoomReq', window.location.hash);
+            resolve(connection);
+        }catch(e){
+            reject(e);
+        }
+    });
+}
